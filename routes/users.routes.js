@@ -37,7 +37,7 @@ router.post("/voteLose", userController.voteLose);
 //get because retrieving info
 //router.get("/getUserProfile", userController.userProfile);
 router.post("/getOwnProfile", userController.getOwnProfile);
-router.postt("/getOwnPosts", userController.getOwnPosts);
+router.post("/getOwnPosts", userController.getOwnPosts);
 router.post("/getOwnFollowers", userController.getOwnFollowers);
 router.post("/getOwnFollowing", userController.getOwnFollowing);
 router.post("/getOwnFollowRequests", userController.getOwnFollowRequests);
