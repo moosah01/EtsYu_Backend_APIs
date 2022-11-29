@@ -15,6 +15,7 @@ const auth = require("../middleware/auth.js");
 //const mytrophies = require("../models/mytrophies.models.js");
 //const { getOwnProfile } = require("../controllers/users.controllers.js");
 const Users = require("../models/users.models.js");
+var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
 
 async function login({ userName, password }, callback) {
   //find the first user with the given fullname
@@ -62,6 +63,10 @@ async function register(params, callback) {
   if (!params.email) {
     console.log("Email is undefined");
     return callback({ message: "Email is required" });
+  }
+
+  if( !params.email.match(mailformat)) {
+    return callback({ message: "Invalid  Email" })
   }
 
   const user = new User(params);

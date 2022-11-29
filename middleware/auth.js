@@ -99,9 +99,23 @@ function checkRole(req, res)
     })
 }
 
+function EmailValidation(enteredEmail)
+{
+    var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if(enteredEmail.value.match(mailformat))
+    {
+       return true;
+    }
+    else
+    {
+       return false;
+    }
+}
+
 module.exports = {
     authenticateToken,
     generateAccessToken,
     checkToken,
-    checkRole
+    checkRole,
+    EmailValidation
 }

@@ -36,13 +36,13 @@ router.post("/voteLose", userController.voteLose);
 
 //get because retrieving info
 //router.get("/getUserProfile", userController.userProfile);
-router.get("/getOwnProfile", userController.getOwnProfile);
-router.get("/getOwnPosts", userController.getOwnPosts);
-router.get("/getOwnFollowers", userController.getOwnFollowers);
-router.get("/getOwnFollowing", userController.getOwnFollowing);
-router.get("/getOwnFollowRequests", userController.getOwnFollowRequests);
-router.get("/getOtherProfileDetails", userController.getOtherProfileDetails);
-router.get("/getChallengeDetails", userController.getChallengeDetails);
+router.post("/getOwnProfile", userController.getOwnProfile);
+router.postt("/getOwnPosts", userController.getOwnPosts);
+router.post("/getOwnFollowers", userController.getOwnFollowers);
+router.post("/getOwnFollowing", userController.getOwnFollowing);
+router.post("/getOwnFollowRequests", userController.getOwnFollowRequests);
+router.post("/getOtherProfileDetails", userController.getOtherProfileDetails);
+router.post("/getChallengeDetails", userController.getChallengeDetails);
 
 
 
