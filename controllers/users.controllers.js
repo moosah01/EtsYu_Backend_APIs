@@ -513,3 +513,35 @@ exports.getChallengeDetails = (req,res,next) =>
         })
     })
 }
+
+exports.getAllChallenges = (req,res,next) => 
+{
+    userService.getAllChallenges(req.body, (error,result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "All Challenges and their details are as follows",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.getMyChallenges = (req,res,next) => 
+{
+    userService.getMyChallenges(req.body, (error,result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "These are the challenges that you have accepted",
+            data: {
+                message: result
+            }
+        })
+    })
+}

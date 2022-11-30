@@ -44,7 +44,7 @@ function generateAccessToken(userName)
     return jwt.sign({
         data: userName}, 
         "MoosaHashim", {
-        expiresIn: "1h"
+        expiresIn: "6h"
     });
 }
 

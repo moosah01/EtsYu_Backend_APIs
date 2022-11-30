@@ -43,8 +43,10 @@ router.post("/getOwnFollowing", userController.getOwnFollowing);
 router.post("/getOwnFollowRequests", userController.getOwnFollowRequests);
 router.post("/getOtherProfileDetails", userController.getOtherProfileDetails);
 router.post("/getChallengeDetails", userController.getChallengeDetails);
+router.post("/getMyChallenges", userController.getMyChallenges);
 
 
+router.get("/getAllChallenges", userController.getAllChallenges)
 
 
 

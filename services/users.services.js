@@ -65,8 +65,8 @@ async function register(params, callback) {
     return callback({ message: "Email is required" });
   }
 
-  if( !params.email.match(mailformat)) {
-    return callback({ message: "Invalid  Email" })
+  if (!params.email.match(mailformat)) {
+    return callback({ message: "Invalid  Email" });
   }
 
   const user = new User(params);
@@ -1090,45 +1090,66 @@ async function acceptChallenge({ userName, challengeID }, callback) {
     });
   }
 
-  if (
-    (await Challenges.find({
-      _id: challengeID,
-    }).count()) > 0
-  ) {
-    await MyChallenges.findOneAndUpdate(
-      {
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    if (
+      (await MyChallenges.findOne({
         userName: userName,
-      },
-      {
-        $push: {
-          challengesAccepted: {
-            challengeID: challengeID,
-            startDate: new Date(Date.now()),
-            endDate: new Date(Date.now() + 72 * 60 * 60 * 1000),
-            status: "pending",
-            winCount: 0,
-            lossCount: 0,
-            hasPosted: false,
+        "challengesAccepted.challengeID": challengeID,
+        "challengesAccepted.status": "pending"
+      }).count()) > 0
+    ) {
+      return callback({
+        message:
+          "You have already accepted this challenge. We're waiting for you to upload",
+      });
+    } else {
+      if (
+        (await Challenges.find({
+          _id: challengeID,
+        }).count()) > 0
+      ) {
+        await MyChallenges.findOneAndUpdate(
+          {
+            userName: userName,
           },
-        },
-      }
-    );
+          {
+            $push: {
+              challengesAccepted: {
+                challengeID: challengeID,
+                startDate: new Date(Date.now()),
+                endDate: new Date(Date.now() + 72 * 60 * 60 * 1000),
+                status: "pending",
+                winCount: 0,
+                lossCount: 0,
+                hasPosted: false,
+              },
+            },
+          }
+        );
 
-    await Challenges.findByIdAndUpdate(
-      {
-        _id: challengeID,
-      },
-      {
-        $inc: {
-          totalAccepted: 1,
-        },
-      }
-    );
+        await Challenges.findByIdAndUpdate(
+          {
+            _id: challengeID,
+          },
+          {
+            $inc: {
+              totalAccepted: 1,
+            },
+          }
+        );
 
-    return callback(null, "Challenge officially accepted");
+        return callback(null, "Challenge officially accepted");
+      } else {
+        return callback({
+          message: "A challenge with this challenge ID does not exist",
+        });
+      }
+    }
   } else {
     return callback({
-      message: "A challenge with this challenge ID does not exist",
+      message: "User does not exist.",
     });
   }
 }
@@ -1443,14 +1464,47 @@ async function getChallengeDetails({ challengeID }, callback) {
     });
   }
 
-  const challenge = await Challenges.findById({_id: challengeID});
+  const challenge = await Challenges.findById({ _id: challengeID });
 
-  if(challenge !=null) {
-    await Challenges.find({_id: challengeID }).then((result) => {
+  if (challenge != null) {
+    await Challenges.find({ _id: challengeID }).then((result) => {
       return callback(null, result);
     });
-  }else {
+  } else {
     return callback({ message: "This challenge does not exist" });
+  }
+}
+
+async function getAllChallenges(params, callback) {
+  await Challenges.find()
+    .then((result) => {
+      return callback(null, result);
+    })
+    .catch((error) => {
+      return callback(error);
+    });
+}
+
+async function getMyChallenges({ userName }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input" });
+  }
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    await MyChallenges.findOne({
+      userName: userName,
+    })
+      .then((result) => {
+        return callback(null, result);
+      })
+      .catch((error) => {
+        return callback(error);
+      });
+  } else {
+    return callback({
+      message: "User does not exist.",
+    });
   }
 }
 
@@ -1483,5 +1537,6 @@ module.exports = {
   getOwnFollowRequests,
   getOtherProfileDetails,
   getChallengeDetails,
-
+  getAllChallenges,
+  getMyChallenges,
 };
