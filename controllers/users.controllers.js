@@ -561,3 +561,19 @@ exports.getMyChallenges = (req,res,next) =>
         })
     })
 }
+
+exports.getTrophie = (req, res, next) => 
+{
+    userService.getTrophie(req.body, (error,result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "Image of trophie with entered ID",
+            data: {
+                message: result
+            }
+        })
+    })
+}

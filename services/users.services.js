@@ -506,6 +506,8 @@ async function uploadPost(
         if (thisChallenge.challengesAccepted[i].challengeID === challengeID) {
           const endDate = thisChallenge.challengesAccepted[i].endDate;
 
+          console.log(i)
+          console.log(thisChallenge.challengesAccepted[i])
           thisChallenge.challengesAccepted[i].status = "uploaded";
           await thisChallenge.save();
           //  console.
@@ -569,7 +571,7 @@ async function uploadPost(
       });
     } else {
       return callback({
-        message: "EFG",
+        message: "You have already uploaded this ",
       });
     }
   } else {
@@ -1015,6 +1017,10 @@ async function addChallenge(params, callback) {
   if (!params.userName) {
     return callback({ message: "every challenge needs an author" });
   }
+
+  if(!params.challengeName) {
+    return callback({ message: "every challenge needs a name" });
+  }
   if (!params.badgeUrl) {
     return callback({ message: "every challenge needs a trophie" });
   }
@@ -1046,6 +1052,7 @@ async function addChallenge(params, callback) {
 
     const newChallenge = new Challenges({
       challengeDesc: params.challengeDesc,
+      challengeName: params.challengeName,
       creatorID: params.userName,
       trophieID: newTrophie._id,
       difficulty: params.difficulty,
@@ -1663,6 +1670,36 @@ async function getFriendPosts({ userName, friendName }, callback) {
   }
 }
 
+async function getTrophie({trophieID}, callback) {
+  if(!trophieID) {
+    return callback({ message: "invalid input" });
+  }
+
+  if (trophieID.length != 24) {
+    return callback({
+      message: "Invalid ID => does not follow MongoDB format for _id",
+    });
+  }
+
+  const trophie = await Trophies.findById({_id: trophieID})
+
+  if(trophie !=null) {
+    if (
+      (await Trophies.find({
+        _id: trophieID
+      }).count()) > 0
+    ) {
+      return callback(null, trophie)
+    }
+    else {
+    return callback({ message: "trophie does not exist" });
+
+    }
+  }else {
+    return callback({ message: "trophie does not exist" });
+    
+  }
+}
 module.exports = {
   login,
   register,
@@ -1695,4 +1732,5 @@ module.exports = {
   getAllChallenges,
   getMyChallenges,
   getFriendPosts,
+  getTrophie
 };

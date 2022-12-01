@@ -3,6 +3,10 @@ const { Schema } = mongoose;
 const uniqueValidator = require("mongoose-unique-validator");
 
 const challengesSchema = new Schema ({
+    challengeName: {
+        type: String,
+        required: true
+    },
     challengeDesc: {
         type: String,
         required: true,
@@ -21,7 +25,8 @@ const challengesSchema = new Schema ({
     },
     successRate: {
         type: Number,
-        default: 0,
+        default: 1,
+        minimum: 1
     },
     creatorID: {
         type: String,
