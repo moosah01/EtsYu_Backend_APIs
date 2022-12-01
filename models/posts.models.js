@@ -4,7 +4,8 @@ const uniqueValidator = require("mongoose-unique-validator");
 
 const postsSchema = new Schema ({
     description: {
-        type: String
+        type: String,
+        default: " "
     },
     mediaURL: {
         type: String,
@@ -54,8 +55,8 @@ const postsSchema = new Schema ({
 postsSchema.set("toJSON", {
     transform: (document, returnedObject) => {
         returnedObject.id = returnedObject._id.toString(),
-        delete returnedObject.id;
-        delete returnedObject._id;        
+        //delete returnedObject.id;
+        //delete returnedObject._id;        
         delete returnedObject.__v;
     },
 });

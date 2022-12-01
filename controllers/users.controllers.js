@@ -426,7 +426,7 @@ exports.getOwnPosts = (req,res,next) =>
             return next(error, result)
         }
         return res.status(200).send({
-            Status: "This is your profile details",
+            Status: "Thse are the posts you have made",
             data: {
                 message: result
             }
@@ -491,6 +491,22 @@ exports.getOtherProfileDetails = (req,res,next) =>
         }
         return res.status(200).send({
             Status: "Details of other person",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.getFriendPosts = (req,res,next) =>
+{
+    userService.getFriendPosts(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "Your friend has posted these things",
             data: {
                 message: result
             }

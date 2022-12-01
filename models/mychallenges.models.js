@@ -25,7 +25,7 @@ const mychallengesSchema = new Schema({
             },
             status: {
                 type: String,
-                enum: ['pending', 'failed', 'success'],
+                enum: ['pending', 'failed', 'success', 'uploaded'],
                 default: 'pending'
             },
             winCount: {

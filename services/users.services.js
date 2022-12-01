@@ -15,7 +15,28 @@ const auth = require("../middleware/auth.js");
 //const mytrophies = require("../models/mytrophies.models.js");
 //const { getOwnProfile } = require("../controllers/users.controllers.js");
 const Users = require("../models/users.models.js");
+const { userProfile } = require("../controllers/users.controllers.js");
 var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+
+// var fNode = function(userName, fullName, userProfilePicture) {
+//   this.userName = userName
+//   this.fullName = fullName
+//   this.userProfilePicture = userProfilePicture
+// }
+
+// class fNode {
+//   constructor(userName, fullName, userProfilePicture) {
+//     this.userName = userName;
+//     this.fullName = fullName;
+//     this.userProfilePicture = userProfilePicture;
+//   }
+// }
+
+function fNode(userName, fullName, userProfilePicture) {
+  this.userName = userName;
+  this.fullName = fullName;
+  this.userProfilePicture = userProfilePicture;
+}
 
 async function login({ userName, password }, callback) {
   //find the first user with the given fullname
@@ -434,28 +455,28 @@ async function acceptFollowRequest({ userName, acceptRequestFrom }, callback) {
   }
 }
 
-async function uploadPost(params, callback) {
-  console.log("Abcd");
-
-  if (!params.mediaURL) {
+async function uploadPost(
+  { mediaURL, challengeID, userName, description },
+  callback
+) {
+  if (!mediaURL) {
     return callback({
       message: "Medai needed to upload a post. Media is missing",
     });
   }
-  if (!params.challengeID) {
+  if (!challengeID) {
     return callback({
       message: "No post can be uploaded without a valid challenge id",
     });
   }
-  if (!params.userName) {
+  if (!userName) {
     return callback({
       message: "Have to specify which user is making the post",
     });
   }
 
   //bruh it can crash if string is of length 24 and not this format
-  if (params.challengeID.length != 24) {
-    console.log("i am here");
+  if (challengeID.length != 24) {
     return callback({
       message: "Invalid ID => does not follow MongoDB format for _id",
     });
@@ -463,48 +484,61 @@ async function uploadPost(params, callback) {
 
   if (
     (await Challenges.find({
-      _id: params.challengeID,
+      _id: challengeID,
     }).count()) > 0
   ) {
     //check if they have accepted challenge
-    console.log("step 2");
     if (
-      (await MyChallenges.find(
-        {
-          userName: params.userName,
-        },
-        {
-          challengesAccepted: {
-            challengeID: params.challengeID,
-          },
-        }
-      ).count()) > 0 //check for error here
+      (await MyChallenges.findOne({
+        userName: userName,
+        "challengesAccepted.challengeID": challengeID,
+        "challengesAccepted.status": "pending",
+      }).count()) > 0
     ) {
-      console.log("step 3");
-      const thisChallenge = await MyChallenges.find({
-        userName: params.userName,
+      //console.log("step 3");
+      var thisChallenge = await MyChallenges.findOne({
+        userName: userName,
       });
-      for (var i = 0; i < thisChallenge[0].challengesAccepted.length; i++) {
-        if (
-          thisChallenge[0].challengesAccepted[i].challengeID ==
-          params.challengeID
-        ) {
-          const endDate = thisChallenge[0].challengesAccepted[i].endDate;
-          //  console.log(endDate);
-          console.log("step 4");
 
+      //console.log(thisChallenge)
+      for (var i = 0; i < thisChallenge.challengesAccepted.length; i++) {
+        // console.log(thisChallenge.challengesAccepted[i])
+        if (thisChallenge.challengesAccepted[i].challengeID === challengeID) {
+          const endDate = thisChallenge.challengesAccepted[i].endDate;
+
+          thisChallenge.challengesAccepted[i].status = "uploaded";
+          await thisChallenge.save();
+          //  console.
+
+          console.log("step 4");
           const nowDate = new Date(Date.now());
           //  console.log(nowDate);
 
           //deadline to post challenge has passed
           if (nowDate.getTime() < endDate.getTime()) {
-            const post = new Posts(params);
+            var post;
+
+            if (!description) {
+              post = new Posts({
+                userName: userName,
+                mediaURL: mediaURL,
+                challengeID: challengeID,
+              });
+            } else {
+              post = new Posts({
+                userName: userName,
+                mediaURL: mediaURL,
+                challengeID: challengeID,
+                description: description,
+              });
+            }
+
             post
               .save()
               .then(async (response) => {
                 await MyPosts.findOneAndUpdate(
                   {
-                    userName: params.userName,
+                    userName: userName,
                   },
                   {
                     $addToSet: {
@@ -520,21 +554,22 @@ async function uploadPost(params, callback) {
                   message: "Post Creation Failed",
                 });
               });
+
+            return callback(null, "post uploaded succesfully");
           } else {
             return callback({
               message:
                 "You cannot upload for this challenge anymore, the date has passed",
             });
           }
-        } else {
-          return callback({
-            message: "you have not accepted this challenge in the first place",
-          });
         }
       }
+      return callback({
+        message: "ABCD",
+      });
     } else {
       return callback({
-        message: "you have not accepted this challenge in the first place",
+        message: "EFG",
       });
     }
   } else {
@@ -734,51 +769,59 @@ async function likeToggle({ userName, postID }, callback) {
     });
   }
 
+  const user = await Users.findOne({ userName: userName });
+
   const post = await Posts.findById({ _id: postID });
-  if (!post) {
-    return callback({
-      message: "the post you are trying to like does not exist",
-    });
-  } else {
-    //console.log(result);
-    if (
-      (await Posts.find({
-        _id: postID,
-        likedByIDs: userName,
-      }).count()) > 0
-    ) {
-      await Posts.findByIdAndUpdate(
-        {
-          _id: postID,
-        },
-        {
-          $inc: {
-            numberOfLikes: -1,
-          },
-          $pull: {
-            likedByIDs: userName,
-          },
-        }
-      );
-      console.log("I am here --> UNLIKE");
-      return callback(null, "Post unliked");
+  if (user != null) {
+    if (!post) {
+      return callback({
+        message: "the post you are trying to like does not exist",
+      });
     } else {
-      await Posts.findByIdAndUpdate(
-        {
+      //console.log(result);
+      if (
+        (await Posts.find({
           _id: postID,
-        },
-        {
-          $inc: {
-            numberOfLikes: 1,
+          likedByIDs: userName,
+        }).count()) > 0
+      ) {
+        await Posts.findByIdAndUpdate(
+          {
+            _id: postID,
           },
-          $addToSet: {
-            likedByIDs: userName,
+          {
+            $inc: {
+              numberOfLikes: -1,
+            },
+            $pull: {
+              likedByIDs: userName,
+            },
+          }
+        );
+        //console.log("I am here --> UNLIKE");
+        return callback(null, "Post unliked");
+      } else {
+        await Posts.findByIdAndUpdate(
+          {
+            _id: postID,
           },
-        }
-      );
-      console.log("I am here --> LIKE");
-      return callback(null, "Post liked");
+          {
+            $inc: {
+              numberOfLikes: 1,
+            },
+            $addToSet: {
+              likedByIDs: userName,
+            },
+          }
+        );
+        //console.log("I am here --> LIKE");
+        return callback(null, "Post liked");
+      }
     }
+  } else {
+    return callback({
+      message: "user does not exist",
+    });
   }
 }
 
@@ -1097,7 +1140,7 @@ async function acceptChallenge({ userName, challengeID }, callback) {
       (await MyChallenges.findOne({
         userName: userName,
         "challengesAccepted.challengeID": challengeID,
-        "challengesAccepted.status": "pending"
+        "challengesAccepted.status": "pending",
       }).count()) > 0
     ) {
       return callback({
@@ -1359,7 +1402,7 @@ async function getOwnFollowers({ userName }, callback) {
   const user = await Users.findOne({ userName: userName });
 
   if (user != null) {
-    await Followers.find({ userName: userName }).then((result) => {
+    await Followers.findOne({ userName: userName }).then((result) => {
       return callback(null, result);
     });
   } else {
@@ -1375,9 +1418,26 @@ async function getOwnFollowing({ userName }, callback) {
   const user = Users.findOne({ userName: userName });
 
   if (user != null) {
-    await Following.find({ userName: userName }).then((result) => {
-      return callback(null, result);
-    });
+    var fNodeList = [];
+    var fullName;
+    var userProfilePicture;
+    const userFollowing = await Following.findOne({ userName: userName });
+
+    console.log(userFollowing)
+
+    var currUser;
+    for (var i = 0; i < userFollowing.following.length; i++) {
+      currUser = await Users.findOne({ userName: userFollowing.following[i] });
+      fullName = currUser.fullName;
+      userProfilePicture = currUser.userProfilePicture;
+      fNodeList.push(new fNode(currUser.userName, fullName, userProfilePicture));
+    }
+
+    // await Following.find({ userName: userName }).then((result) => {
+    //   return callback(null, result);
+    // });
+
+    return callback(null, fNodeList);
   } else {
     return callback({ message: "user does not exist" });
   }
@@ -1508,6 +1568,48 @@ async function getMyChallenges({ userName }, callback) {
   }
 }
 
+async function getFriendPosts({ userName, friendName }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input" });
+  }
+  if (!friendName) {
+    return callback({ message: "invalid input" });
+  }
+
+  const user1 = await Users.findOne({ userName: userName });
+  const user2 = await Users.findOne({ userName: friendName });
+
+  if (user1 != null && user2 != null) {
+    const isFollowing = await Following.findOne({
+      userName: userName,
+      following: friendName,
+    });
+    if (isFollowing != null) {
+      //console.log(isFollowing)
+      if (
+        (await Posts.find({
+          userName: friendName,
+        }).count()) > 0
+      ) {
+        await Posts.find({ userName: friendName, isPrivated: false })
+          .sort({ dateAdded: "desc" })
+          .then((result) => {
+            return callback(null, result);
+          });
+      } else {
+        return callback({ message: " this user has not made any posts" });
+      }
+    } else {
+      return callback({
+        message:
+          "Cannot view posts, this guy is not you friend i.e; you are not followng this account",
+      });
+    }
+  } else {
+    return callback({ message: "One of the two users does not exist" });
+  }
+}
+
 module.exports = {
   login,
   register,
@@ -1539,4 +1641,5 @@ module.exports = {
   getChallengeDetails,
   getAllChallenges,
   getMyChallenges,
+  getFriendPosts,
 };
