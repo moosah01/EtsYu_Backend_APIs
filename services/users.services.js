@@ -1402,9 +1402,32 @@ async function getOwnFollowers({ userName }, callback) {
   const user = await Users.findOne({ userName: userName });
 
   if (user != null) {
-    await Followers.findOne({ userName: userName }).then((result) => {
-      return callback(null, result);
-    });
+    var fNodeList = [];
+    var fullName;
+    var userProfilePicture;
+    const userFollowers = await Followers.findOne({ userName: userName });
+
+    if (userFollowers != null) {
+      var currUser;
+      for (var i = 0; i < userFollowers.followers.length; i++) {
+        currUser = await Users.findOne({
+          userName: userFollowers.followers[i],
+        });
+        fullName = currUser.fullName;
+        userProfilePicture = currUser.userProfilePicture;
+        fNodeList.push(
+          new fNode(currUser.userName, fullName, userProfilePicture)
+        );
+      }
+
+      return callback(null, fNodeList);
+    } else {
+      return callback({ message: "user does not exist" });
+    }
+
+    // await Followers.findOne({ userName: userName }).then((result) => {
+    //   return callback(null, result);
+    // });
   } else {
     return callback({ message: "user does not exist" });
   }
@@ -1423,21 +1446,29 @@ async function getOwnFollowing({ userName }, callback) {
     var userProfilePicture;
     const userFollowing = await Following.findOne({ userName: userName });
 
-    console.log(userFollowing)
+    //console.log(userFollowing)
 
-    var currUser;
-    for (var i = 0; i < userFollowing.following.length; i++) {
-      currUser = await Users.findOne({ userName: userFollowing.following[i] });
-      fullName = currUser.fullName;
-      userProfilePicture = currUser.userProfilePicture;
-      fNodeList.push(new fNode(currUser.userName, fullName, userProfilePicture));
+    if (userFollowing != null) {
+      var currUser;
+      for (var i = 0; i < userFollowing.following.length; i++) {
+        currUser = await Users.findOne({
+          userName: userFollowing.following[i],
+        });
+        fullName = currUser.fullName;
+        userProfilePicture = currUser.userProfilePicture;
+        fNodeList.push(
+          new fNode(currUser.userName, fullName, userProfilePicture)
+        );
+      }
+
+      // await Following.find({ userName: userName }).then((result) => {
+      //   return callback(null, result);
+      // });
+
+      return callback(null, fNodeList);
+    } else {
+      return callback({ message: "user does not exist" });
     }
-
-    // await Following.find({ userName: userName }).then((result) => {
-    //   return callback(null, result);
-    // });
-
-    return callback(null, fNodeList);
   } else {
     return callback({ message: "user does not exist" });
   }
@@ -1451,9 +1482,31 @@ async function getOwnFollowRequests({ userName }, callback) {
   const user = await Users.findOne({ userName: userName });
 
   if (user != null) {
-    await FollowRequests.find({ userName: userName }).then((result) => {
-      return callback(null, result);
-    });
+    var fNodeList = [];
+    var fullName;
+    var userProfilePicture;
+    const userRequests = await FollowRequests.findOne({ userName: userName });
+
+    //console.log(userFollowing)
+    if (userRequests != null) {
+      var currUser;
+      for (var i = 0; i < userRequests.requests.length; i++) {
+        currUser = await Users.findOne({ userName: userRequests.requests[i] });
+        fullName = currUser.fullName;
+        userProfilePicture = currUser.userProfilePicture;
+        fNodeList.push(
+          new fNode(currUser.userName, fullName, userProfilePicture)
+        );
+      }
+
+      return callback(null, fNodeList);
+
+      // await FollowRequests.find({ userName: userName }).then((result) => {
+      //   return callback(null, result);
+      // });
+    } else {
+      return callback({ message: "user does not exist" });
+    }
   } else {
     return callback({ message: "user does not exist" });
   }
