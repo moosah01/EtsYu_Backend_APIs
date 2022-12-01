@@ -43,6 +43,11 @@ function challengeNode(challenge, challengeImage) {
   this.challengeImage = challengeImage;
 }
 
+function myChallengeNode(challengeDetails, myChallenge, challengeImage) {
+  this.challengeDetails = challengeDetails;
+  (this.myChallenge = myChallenge), (this.challengeImage = challengeImage);
+}
+
 async function login({ userName, password }, callback) {
   //find the first user with the given fullname
   const user = await User.findOne({ userName });
@@ -1620,21 +1625,20 @@ async function getAllChallenges(params, callback) {
     if (!challenge) {
       //console.log("Nahi Mila ");
     } else {
-     /// console.log("Mil Gaya ");
+      /// console.log("Mil Gaya ");
       var trophie = await Trophies.findById({ _id: challenge.trophieID });
       if (!trophie) {
-      //  console.log("Nahi Mila ");
+        //  console.log("Nahi Mila ");
       } else {
         challengeImage = trophie.badgeUrl;
         console.log(challengeImage);
 
-        challengeNodeList.push(new challengeNode(challenge, challengeImage))
+        challengeNodeList.push(new challengeNode(challenge, challengeImage));
       }
     }
   }
 
   return callback(null, challengeNodeList);
-
 
   // await Challenges.find()
   //   .then((result) => {
@@ -1652,6 +1656,38 @@ async function getMyChallenges({ userName }, callback) {
   const user = await Users.findOne({ userName: userName });
 
   if (user != null) {
+    var myChallengeNodeList = [];
+    var myChallengeIDs = [];
+    const mychallenges = await MyChallenges.findOne({ userName: userName });
+    //console.log(mychallenges.challengesAccepted.length);
+
+    for (var i = 0; i < mychallenges.challengesAccepted.length; i++) {
+      var thisChallengeID = mychallenges.challengesAccepted[i].challengeID;
+      myChallengeIDs.push(thisChallengeID);
+    }
+
+    for (var i = 0; i < mychallenges.challengesAccepted.length; i++) {
+      var challenge = await Challenges.findById({ _id: myChallengeIDs[i] });
+      if (challenge != null) {
+        var trophie = await Trophies.findById({ _id: challenge.trophieID });
+        if (trophie != null) {
+          challengeImage = trophie.badgeUrl;
+          myChallengeNodeList.push(
+            new myChallengeNode(
+              mychallenges.challengesAccepted[i],
+              challenge,
+              trophie
+            )
+          );
+        } else {
+        }
+      } else {
+      }
+    }
+
+    return callback(null, myChallengeNodeList);
+    console.log(myChallengeIDs);
+
     await MyChallenges.findOne({
       userName: userName,
     })
