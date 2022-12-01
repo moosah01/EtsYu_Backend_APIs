@@ -48,6 +48,18 @@ function myChallengeNode(challengeDetails, myChallenge, challengeImage) {
   (this.myChallenge = myChallenge), (this.challengeImage = challengeImage);
 }
 
+function compare(a, b) {
+  
+  if(a > b) {
+    return 1;
+  }
+  if (b > a) {
+    return -1;
+  }
+
+  return 0
+}
+
 async function login({ userName, password }, callback) {
   //find the first user with the given fullname
   const user = await User.findOne({ userName });
@@ -1819,6 +1831,116 @@ async function changeTrophieBadge({ trophieID, newBadgeURL }, callback) {
   }
 }
 
+// async function getUserFeed({ userName }, callback) {
+//   if (!userName) {
+//     return callback({ message: "invalid input" });
+//   }
+//   const user = await Users.findOne({ userName: userName });
+
+//   if (user != null) {
+//     var postList = [];
+//     var usersList = [];
+
+//     const myFollowing = await Following.findOne({ userName: userName });
+
+//     for (var i = 0; i < myFollowing.following.length; i++) {
+//       usersList.push(myFollowing.following[i]);
+//     }
+//     usersList.push(userName);
+
+//     for (var i = 0; i < usersList.length; i++) {
+
+//       var posts = await Posts.find({
+//         userName: usersList[i],
+//         isPrivated: false,
+//       }).sort({ dateAdded: "desc" });
+
+//       // if(await await Posts.find({
+//       //   userName: usersList[i],
+//       //   isPrivated: false,
+//       // }).count()>0) {
+//       //   postList.push(await Posts.find)
+//       // }
+
+//       if(posts.length >0) {
+//         postList.push(posts);
+//       }
+//       //console.log(posts[1].length)
+//       // for(var i =0; i<posts.length; i++) {
+//       //   for(var j=0; j< posts[i].length; j++) {
+
+//       //   }
+//       // }
+//     }
+
+//     // var finalList = [];
+//     // console.log(postList.length);
+//     // console.log('ABCD')
+//     // for( var i =0; i <postList.length; i++) {
+//     //   console.log(postList[i].length)
+//     //   for( var j =0; j <postList[i].length; j++) {
+
+//     //   }
+//     // }
+
+//     return callback(null, postList);
+//     return callback(null, finalList);
+
+//   } else {
+//     return callback({ message: "user does not exist" });
+//   }
+// }
+
+async function getUserFeed({ userName }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input" });
+  }
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    var postList = [];
+    var usersList = [];
+    var singlePost;
+
+    const myFollowing = await Following.findOne({ userName: userName });
+
+    for (var i = 0; i < myFollowing.following.length; i++) {
+      usersList.push(myFollowing.following[i]);
+    }
+    usersList.push(userName);
+
+    for (var i = 0; i < usersList.length; i++) {
+      var posts = await Posts.find({
+        userName: usersList[i],
+        isPrivated: false,
+      }).sort({ dateAdded: "desc" });
+
+      for (var j = 0; j < posts.length; j++) {
+        singlePost = posts[j];
+        postList.push(singlePost);
+      }
+    }
+
+    var orderedPostList;
+
+    orderedPostList = postList.sort((a,b) => {
+      if(a.dateAdded.getTime() > b.dateAdded.getTime()) {
+        return 1
+      }
+      else if (a.dateAdded.getTime() < b.dateAdded.getTime()) {
+        return -1
+      }
+      else {
+        return 0
+      }
+    });
+
+    return callback(null, orderedPostList);
+  } else {
+    return callback({ message: "user does not exist" });
+  }
+}
+
 module.exports = {
   login,
   register,
@@ -1853,4 +1975,5 @@ module.exports = {
   getFriendPosts,
   getTrophie,
   changeTrophieBadge,
+  getUserFeed,
 };

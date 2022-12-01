@@ -593,3 +593,20 @@ exports.changeTrophieBadge = (req, res, next) =>
         })
     })
 }
+
+
+exports.getUserFeed = (req, res, next) =>
+{
+    userService.getUserFeed(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error, result)
+        }
+        return res.status(200).send({
+            Status: "Your Feed",
+            data: {
+                message: result
+            }
+        })
+    })
+}

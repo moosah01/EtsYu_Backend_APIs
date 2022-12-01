@@ -47,6 +47,8 @@ router.post("/getMyChallenges", userController.getMyChallenges);
 router.post("/getFriendPosts", userController.getFriendPosts);
 router.post("/getTrophie", userController.getTrophie);
 router.post("/changeTrophieBadge", userController.changeTrophieBadge);
+router.post("/getUserFeed", userController.getUserFeed);
+
 
 
 router.get("/getAllChallenges", userController.getAllChallenges)
