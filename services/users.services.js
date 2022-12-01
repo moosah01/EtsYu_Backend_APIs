@@ -38,6 +38,11 @@ function fNode(userName, fullName, userProfilePicture) {
   this.userProfilePicture = userProfilePicture;
 }
 
+function challengeNode(challenge, challengeImage) {
+  this.challenge = challenge;
+  this.challengeImage = challengeImage;
+}
+
 async function login({ userName, password }, callback) {
   //find the first user with the given fullname
   const user = await User.findOne({ userName });
@@ -506,8 +511,8 @@ async function uploadPost(
         if (thisChallenge.challengesAccepted[i].challengeID === challengeID) {
           const endDate = thisChallenge.challengesAccepted[i].endDate;
 
-          console.log(i)
-          console.log(thisChallenge.challengesAccepted[i])
+          console.log(i);
+          console.log(thisChallenge.challengesAccepted[i]);
           thisChallenge.challengesAccepted[i].status = "uploaded";
           await thisChallenge.save();
           //  console.
@@ -1018,7 +1023,7 @@ async function addChallenge(params, callback) {
     return callback({ message: "every challenge needs an author" });
   }
 
-  if(!params.challengeName) {
+  if (!params.challengeName) {
     return callback({ message: "every challenge needs a name" });
   }
   if (!params.badgeUrl) {
@@ -1596,13 +1601,48 @@ async function getChallengeDetails({ challengeID }, callback) {
 }
 
 async function getAllChallenges(params, callback) {
-  await Challenges.find()
-    .then((result) => {
-      return callback(null, result);
-    })
-    .catch((error) => {
-      return callback(error);
-    });
+  var challengeNodeList = [];
+
+  const allChallenges = await Challenges.find();
+
+  console.log(allChallenges.length);
+
+  var allChallengeIDs = [];
+  var challengeImage;
+
+  for (var i = 0; i < allChallenges.length; i++) {
+    var thisChallengeID = allChallenges[i]._id;
+    allChallengeIDs.push(thisChallengeID);
+  }
+
+  for (var i = 0; i < allChallenges.length; i++) {
+    var challenge = await Challenges.findById({ _id: allChallengeIDs[i] });
+    if (!challenge) {
+      //console.log("Nahi Mila ");
+    } else {
+     /// console.log("Mil Gaya ");
+      var trophie = await Trophies.findById({ _id: challenge.trophieID });
+      if (!trophie) {
+      //  console.log("Nahi Mila ");
+      } else {
+        challengeImage = trophie.badgeUrl;
+        console.log(challengeImage);
+
+        challengeNodeList.push(new challengeNode(challenge, challengeImage))
+      }
+    }
+  }
+
+  return callback(null, challengeNodeList);
+
+
+  // await Challenges.find()
+  //   .then((result) => {
+  //     return callback(null, result);
+  //   })
+  //   .catch((error) => {
+  //     return callback(error);
+  //   });
 }
 
 async function getMyChallenges({ userName }, callback) {
@@ -1670,8 +1710,8 @@ async function getFriendPosts({ userName, friendName }, callback) {
   }
 }
 
-async function getTrophie({trophieID}, callback) {
-  if(!trophieID) {
+async function getTrophie({ trophieID }, callback) {
+  if (!trophieID) {
     return callback({ message: "invalid input" });
   }
 
@@ -1681,25 +1721,68 @@ async function getTrophie({trophieID}, callback) {
     });
   }
 
-  const trophie = await Trophies.findById({_id: trophieID})
+  const trophie = await Trophies.findById({ _id: trophieID });
 
-  if(trophie !=null) {
+  if (trophie != null) {
     if (
       (await Trophies.find({
-        _id: trophieID
+        _id: trophieID,
       }).count()) > 0
     ) {
-      return callback(null, trophie)
+      return callback(null, trophie);
+    } else {
+      return callback({ message: "trophie does not exist" });
     }
-    else {
+  } else {
     return callback({ message: "trophie does not exist" });
-
-    }
-  }else {
-    return callback({ message: "trophie does not exist" });
-    
   }
 }
+
+async function changeTrophieBadge({ trophieID, newBadgeURL }, callback) {
+  if (!newBadgeURL) {
+    return callback({ message: "invalid input => url missing" });
+  }
+
+  if (!trophieID) {
+    return callback({ message: "invalid input => no trophie ID specified" });
+  }
+
+  if (trophieID.length != 24) {
+    return callback({
+      message: "Invalid ID => does not follow MongoDB format for _id",
+    });
+  }
+
+  const trophie = await Trophies.findById({ _id: trophieID });
+
+  if (trophie != null) {
+    if (
+      (await Trophies.find({
+        _id: trophieID,
+      }).count()) > 0
+    ) {
+      await Trophies.findByIdAndUpdate(
+        {
+          _id: trophieID,
+        },
+        {
+          badgeUrl: newBadgeURL,
+        }
+      )
+        .then((result) => {
+          return callback(null, result);
+        })
+        .catch((error) => {
+          return callback(error);
+        });
+    } else {
+      return callback({ message: "trophie does not exist" });
+    }
+  } else {
+    return callback({ message: "trophie does not exist" });
+  }
+}
+
 module.exports = {
   login,
   register,
@@ -1732,5 +1815,6 @@ module.exports = {
   getAllChallenges,
   getMyChallenges,
   getFriendPosts,
-  getTrophie
+  getTrophie,
+  changeTrophieBadge,
 };

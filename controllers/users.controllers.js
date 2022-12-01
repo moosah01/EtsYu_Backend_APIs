@@ -577,3 +577,19 @@ exports.getTrophie = (req, res, next) =>
         })
     })
 }
+
+exports.changeTrophieBadge = (req, res, next) => 
+{
+    userService.changeTrophieBadge(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "Image has been updated => new badge assigned",
+            data: {
+                message: result
+            }
+        })
+    })
+}
