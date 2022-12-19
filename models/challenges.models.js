@@ -5,7 +5,8 @@ const uniqueValidator = require("mongoose-unique-validator");
 const challengesSchema = new Schema ({
     challengeName: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     challengeDesc: {
         type: String,

@@ -17,6 +17,7 @@ const auth = require("../middleware/auth.js");
 const Users = require("../models/users.models.js");
 const { userProfile } = require("../controllers/users.controllers.js");
 var mailformat = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+//var mongoose = require('mongoose');
 
 // var fNode = function(userName, fullName, userProfilePicture) {
 //   this.userName = userName
@@ -49,15 +50,14 @@ function myChallengeNode(challengeDetails, myChallenge, challengeImage) {
 }
 
 function compare(a, b) {
-  
-  if(a > b) {
+  if (a > b) {
     return 1;
   }
   if (b > a) {
     return -1;
   }
 
-  return 0
+  return 0;
 }
 
 async function login({ userName, password }, callback) {
@@ -305,60 +305,64 @@ async function sendFollowRequest({ userName, sendRequestTo }, callback) {
     return callback({ message: "userName & sendRequestTo is required" });
   }
 
-  const user = await User.findOne({ userName: userName }); //sending req
-  const user2 = await User.findOne({ userName: sendRequestTo }); //this user is being sent request to
-
-  if (user != null && user2 != null) {
-    const isAlreadyFollowing = await Following.findOne({
-      userName: userName,
-      following: sendRequestTo,
-    });
-
-    const hasAlreadySentRequest = await FollowRequests.findOne({
-      userName: sendRequestTo,
-      requests: userName,
-    });
-
-    if (isAlreadyFollowing == null && hasAlreadySentRequest == null) {
-      await FollowRequests.findOneAndUpdate(
-        {
-          //first is filter on the basis of
-          userName: sendRequestTo,
-        },
-        {
-          //use $push if you dont want unique check before pushing
-          $addToSet: {
-            requests: userName,
-          },
-        }
-      );
-      return callback(null, "Success");
-    } else {
-      if (isAlreadyFollowing) {
-        return callback({
-          message: "You are already following this user",
-        });
-      }
-      if (hasAlreadySentRequest) {
-        return callback({
-          message: "You have already sent this user a friend request",
-        });
-      }
-    }
+  if (userName === sendRequestTo) {
+    return callback({ message: "You cant send request to yourself" });
   } else {
-    if (!user) {
-      return callback({
-        message: "User 1 does not exist.",
+    const user = await User.findOne({ userName: userName }); //sending req
+    const user2 = await User.findOne({ userName: sendRequestTo }); //this user is being sent request to
+
+    if (user != null && user2 != null) {
+      const isAlreadyFollowing = await Following.findOne({
+        userName: userName,
+        following: sendRequestTo,
       });
-    } else if (!user2) {
-      return callback({
-        message: "User 2 does not exist.",
+
+      const hasAlreadySentRequest = await FollowRequests.findOne({
+        userName: sendRequestTo,
+        requests: userName,
       });
+
+      if (isAlreadyFollowing == null && hasAlreadySentRequest == null) {
+        await FollowRequests.findOneAndUpdate(
+          {
+            //first is filter on the basis of
+            userName: sendRequestTo,
+          },
+          {
+            //use $push if you dont want unique check before pushing
+            $addToSet: {
+              requests: userName,
+            },
+          }
+        );
+        return callback(null, "Success");
+      } else {
+        if (isAlreadyFollowing) {
+          return callback({
+            message: "You are already following this user",
+          });
+        }
+        if (hasAlreadySentRequest) {
+          return callback({
+            message: "You have already sent this user a friend request",
+          });
+        }
+      }
+    } else {
+      if (!user) {
+        return callback({
+          message: "User 1 does not exist.",
+        });
+      } else if (!user2) {
+        return callback({
+          message: "User 2 does not exist.",
+        });
+      }
     }
+    return callback({
+      message: "Error Request Failed",
+    });
   }
-  return callback({
-    message: "Error Request Failed",
-  });
 }
 
 async function deleteFollowRequest({ userName, deleteRequestFrom }, callback) {
@@ -1716,6 +1720,81 @@ async function getMyChallenges({ userName }, callback) {
   }
 }
 
+async function getUniqueChallenges({ userName }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input" });
+  }
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    var myChallengeIDs = [];
+    var allChallengeIDs = [];
+    var challengeNodeList = [];
+    var challengeImage;
+    //var myChallengeNodeList = [];
+
+    const mychallenges = await MyChallenges.findOne({ userName: userName });
+
+    // console.log("My Challenge IDs");
+    for (var i = 0; i < mychallenges.challengesAccepted.length; i++) {
+      var thisChallengeID = mychallenges.challengesAccepted[i].challengeID;
+
+      var challID = await Challenges.findById({ _id: thisChallengeID });
+
+      myChallengeIDs.push(challID._id);
+      //  console.log(myChallengeIDs[i]);
+    }
+
+    // console.log("ALL Challenge IDs");
+    const allChallenges = await Challenges.find();
+    for (var i = 0; i < allChallenges.length; i++) {
+      var ChallengeID = allChallenges[i]._id;
+      allChallengeIDs.push(ChallengeID);
+      //  console.log(allChallengeIDs[i]);
+    }
+
+    for (var i = 0; i < allChallengeIDs.length; i++) {
+      var common = false;
+      // var compA = myChallengeIDs[i];
+      for (var j = 0; j < myChallengeIDs.length; j++) {
+        var compB = allChallengeIDs[j];
+        //console.log(myChallengeIDs[i] == allChallengeIDs[j]);
+        //console.log(compA == compB);
+        if (allChallengeIDs[i].equals(myChallengeIDs[j])) {
+          common = true;
+          // console.log("I am here");
+          break;
+        }
+      }
+      if (common == false) {
+        console.log(allChallengeIDs[i]);
+        var challenge = await Challenges.findById({ _id: allChallengeIDs[i] });
+        // console.log(challenge)
+        if (challenge != null) {
+          // console.log("XYZ")
+          //var searchTrophieID = mongoose.Types.ObjectID(challenge.trophieID)
+          // console.log(challenge.trophieID);
+          //var searchTrophieID = ObjectID(challenge.trophieID)
+
+          var trophie = await Trophies.findById({ _id: challenge.trophieID });
+          if (trophie != null) {
+            challengeImage = trophie.badgeUrl;
+            console.log(challengeImage);
+
+            challengeNodeList.push(
+              new challengeNode(challenge, challengeImage)
+            );
+          }
+        }
+      }
+    }
+
+    return callback(null, challengeNodeList);
+
+    // console.log(myChallengeIDs)
+  }
+}
+
 async function getFriendPosts({ userName, friendName }, callback) {
   if (!userName) {
     return callback({ message: "invalid input" });
@@ -1923,15 +2002,13 @@ async function getUserFeed({ userName }, callback) {
 
     var orderedPostList;
 
-    orderedPostList = postList.sort((a,b) => {
-      if(a.dateAdded.getTime() > b.dateAdded.getTime()) {
-        return 1
-      }
-      else if (a.dateAdded.getTime() < b.dateAdded.getTime()) {
-        return -1
-      }
-      else {
-        return 0
+    orderedPostList = postList.sort((a, b) => {
+      if (a.dateAdded.getTime() > b.dateAdded.getTime()) {
+        return 1;
+      } else if (a.dateAdded.getTime() < b.dateAdded.getTime()) {
+        return -1;
+      } else {
+        return 0;
       }
     });
 
@@ -1976,4 +2053,5 @@ module.exports = {
   getTrophie,
   changeTrophieBadge,
   getUserFeed,
+  getUniqueChallenges,
 };

@@ -610,3 +610,19 @@ exports.getUserFeed = (req, res, next) =>
         })
     })
 }
+
+exports.getUniqueChallenges = (req,res,next) =>
+{
+    userService.getUniqueChallenges(req.body, (error,result)=> {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "You have not accepted these challenges",
+            data: {
+                message: result
+            }
+        })
+    })
+}
