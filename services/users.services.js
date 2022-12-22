@@ -597,7 +597,7 @@ async function uploadPost(
       });
     } else {
       return callback({
-        message: "You have already uploaded this ",
+        message: "You have not accepted this challenge ",
       });
     }
   } else {
@@ -1086,7 +1086,7 @@ async function addChallenge(params, callback) {
         properties: {
           minVotes: params.acceptanceCriteria.minVotes,
           winPercent: params.acceptanceCriteria.winPercent,
-          timeLimit: new Date(Date.now() + 72 * 60 * 60 * 1000),
+          timeLimit: "3 days",
         },
       },
     });
@@ -1795,6 +1795,47 @@ async function getUniqueChallenges({ userName }, callback) {
   }
 }
 
+async function getFriendStatus({ fromUserName, toCheckUserName }, callback) {
+  if (!fromUserName) {
+    return callback({ message: "invalid input, fromUserName field is empty" });
+  }
+
+  if (!toCheckUserName) {
+    return callback({
+      message: "invalid input, toCheckUserName field is empty",
+    });
+  }
+
+  if (fromUserName === toCheckUserName) {
+    return callback(null, "3 - its the same user");
+  }
+
+  const user1 = await Users.findOne({ userName: fromUserName });
+  const user2 = await Users.findOne({ userName: toCheckUserName });
+
+  if (user1 != null && user2 != null) {
+    const isFollowing = await Following.findOne({
+      userName: fromUserName,
+      following: toCheckUserName,
+    });
+    if (isFollowing != null) {
+      return callback(null, "2 - You are followning this user");
+    } else {
+      const hasAlreadySentRequest = await FollowRequests.findOne({
+        userName: toCheckUserName,
+        requests: fromUserName,
+      });
+      if (hasAlreadySentRequest != null) {
+        return callback(null, "1 - You have sent this user a friend reqeuest");
+      } else {
+        return callback(null, "0 - You do not follow this user");
+      }
+    }
+  } else {
+    return callback({ message: "one of the two users does not exist" });
+  }
+}
+
 async function getFriendPosts({ userName, friendName }, callback) {
   if (!userName) {
     return callback({ message: "invalid input" });
@@ -2018,6 +2059,120 @@ async function getUserFeed({ userName }, callback) {
   }
 }
 
+async function toggleUserStatus({ userName, newStatus }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input - userName field is empty" });
+  }
+  if (!newStatus) {
+    return callback({ message: "invalid input - status field not entered" });
+  }
+
+  if (
+    newStatus === "inactive" ||
+    newStatus === "active" ||
+    newStatus === "deleted"
+  ) {
+    const user = await Users.findOne({ userName: userName });
+    if (user != null) {
+      await Users.findOneAndUpdate(
+        {
+          userName: userName,
+        },
+        {
+          status: newStatus,
+        }
+      )
+        .then((success) => {
+          return callback(null, success);
+        })
+        .catch((error) => {
+          return error;
+        });
+    } else {
+      return callback({ message: "user does not exist" });
+    }
+  } else {
+    return callback({ message: "invalid status specified" });
+  }
+}
+
+async function removeFollower({ userName, userNameToUnfollow }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input - userName field is empty" });
+  }
+  if (!userNameToUnfollow) {
+    return callback({ message: "invalid input - userName field is empty" });
+  }
+
+  const user1 = await Users.findOne({ userName: userName });
+  const user2 = await Users.findOne({ userName: userNameToUnfollow });
+
+  if (user1 != null && user2 != null) {
+    if (
+      (await Followers.find({
+        userName: userName,
+        followers: userNameToUnfollow,
+      }).count()) > 0
+    ) {
+      await Followers.findOneAndUpdate(
+        {
+          userName: userName,
+        },
+        {
+          $pull: {
+            followers: userNameToUnfollow,
+          },
+        }
+      ).then((result) => {
+        return callback(null, result);
+      });
+    } else {
+      return callback({ message: "this user does not follow you" });
+    }
+  } else {
+    return callback({ message: "one of the two users does not exist" });
+  }
+}
+
+async function unfollowUser({ userName, userNameToUnfollow }, callback) {
+  if (!userName) {
+    return callback({ message: "invalid input - userName field is empty" });
+  }
+  if (!userNameToUnfollow) {
+    return callback({ message: "invalid input - userName field is empty" });
+  }
+
+  const user1 = await Users.findOne({ userName: userName });
+  const user2 = await Users.findOne({ userName: userNameToUnfollow });
+
+  if (user1 != null && user2 != null) {
+    if (
+      (await Following.find({
+        userName: userName,
+        following: userNameToUnfollow,
+      }).count()) > 0
+    ) {
+      await Following.findOneAndUpdate(
+        {
+          userName: userName,
+        },
+        {
+          $pull: {
+            following: userNameToUnfollow,
+          },
+        }
+      ).then((result) => {
+        return callback(null, result);
+      });
+    } else {
+      return callback({ message: "You do not follow this user" });
+    }
+  } else {
+    return callback({ message: "one of the two users does not exist" });
+  }
+}
+
+
 module.exports = {
   login,
   register,
@@ -2054,4 +2209,8 @@ module.exports = {
   changeTrophieBadge,
   getUserFeed,
   getUniqueChallenges,
+  getFriendStatus,
+  toggleUserStatus,
+  removeFollower,
+  unfollowUser
 };

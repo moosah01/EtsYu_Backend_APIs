@@ -54,14 +54,14 @@ const challengesSchema = new Schema ({
                 required: true
             },
             timeLimit: {
-                type: Number,
-                default: Date.now() + 72*60*60*1000 
+                type: String,
+                default: "3 days"
             }
         }
     },
     votingDuration: {
-        type: Date,
-        default: Date.now() + 72*60*60*1000
+        type: String,
+        default: "2 days"
     },
     status: {
         type: String,

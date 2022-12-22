@@ -31,6 +31,10 @@ router.post("/toggleChallengeStatus", userController.toggleChallengeStatus);
 router.post("/acceptChallenge", userController.acceptChallenge);
 router.post("/voteWin", userController.voteWin);
 router.post("/voteLose", userController.voteLose);
+router.post("/toggleUserStatus", userController.toggleUserStatus);
+router.post("/removeFollower", userController.removeFollower);
+router.post("/unfollowUser", userController.unfollowUser);
+
 
 
 
@@ -49,6 +53,7 @@ router.post("/getTrophie", userController.getTrophie);
 router.post("/changeTrophieBadge", userController.changeTrophieBadge);
 router.post("/getUserFeed", userController.getUserFeed);
 router.post("/getUniqueChallenges", userController.getUniqueChallenges)
+router.post("/getFriendStatus", userController.getFriendStatus);
 
 
 

@@ -626,3 +626,67 @@ exports.getUniqueChallenges = (req,res,next) =>
         })
     })
 }
+
+exports.getFriendStatus = (req,res,next) =>
+{
+    userService.getFriendStatus(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error,result);
+        }
+        return res.status(200).send({
+            Status: "Relationship with user is",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.toggleUserStatus = (req,res,next) =>
+{
+    userService.toggleUserStatus(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error,result);
+        }
+        return res.status(200).send({
+            Status: "User Status toggled",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.removeFollower = (req,res,next) =>
+{
+    userService.removeFollower(req.body, (error, result) => {
+        if(error)
+        {
+            return next(error,result);
+        }
+        return res.status(200).send({
+            Status: "Follower has been removed",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.unfollowUser = (req,res,next) =>
+{
+    userService.unfollowUser((req.body), (error,result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "User has been unfollowed",
+            data: {
+                message: result
+            }
+        })
+    })
+}
