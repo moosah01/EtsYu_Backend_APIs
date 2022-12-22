@@ -1545,6 +1545,8 @@ async function getOwnFollowRequests({ userName }, callback) {
   }
 }
 
+
+
 // async function getOtherProfileDetails({ userName, friendUserName }, callback) {
 //   if (!userName) {
 //     return callback({ message: "invalid input" });
@@ -2123,8 +2125,19 @@ async function removeFollower({ userName, userNameToRemove }, callback) {
             followers: userNameToRemove,
           },
         }
-      ).then((result) => {
-        return callback(null, result);
+      ).then(async (resultA) => {
+        await Following.findOneAndUpdate(
+          {
+            userName: userNameToRemove,
+          },
+          {
+            $pull: {
+              following: userName,
+            },
+          }
+        ).then((resultB) => {
+          return callback(null, resultB);
+        });
       });
     } else {
       return callback({ message: "this user does not follow you" });
@@ -2161,8 +2174,19 @@ async function unfollowUser({ userName, userNameToUnfollow }, callback) {
             following: userNameToUnfollow,
           },
         }
-      ).then((result) => {
-        return callback(null, result);
+      ).then(async (resultA) => {
+        await Followers.findOneAndUpdate(
+          {
+            userName: userNameToUnfollow,
+          },
+          {
+            $pull: {
+              followers: userName,
+            },
+          }
+        ).then((resultB) => {
+          return callback(null, resultB);
+        });
       });
     } else {
       return callback({ message: "You do not follow this user" });
