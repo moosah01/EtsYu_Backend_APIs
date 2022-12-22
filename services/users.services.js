@@ -2096,22 +2096,22 @@ async function toggleUserStatus({ userName, newStatus }, callback) {
   }
 }
 
-async function removeFollower({ userName, userNameToUnfollow }, callback) {
+async function removeFollower({ userName, userNameToRemove }, callback) {
   if (!userName) {
     return callback({ message: "invalid input - userName field is empty" });
   }
-  if (!userNameToUnfollow) {
-    return callback({ message: "invalid input - userName field is empty" });
+  if (!userNameToRemove) {
+    return callback({ message: "invalid input - userNameToRemove field is empty" });
   }
 
   const user1 = await Users.findOne({ userName: userName });
-  const user2 = await Users.findOne({ userName: userNameToUnfollow });
+  const user2 = await Users.findOne({ userName: userNameToRemove });
 
   if (user1 != null && user2 != null) {
     if (
       (await Followers.find({
         userName: userName,
-        followers: userNameToUnfollow,
+        followers: userNameToRemove,
       }).count()) > 0
     ) {
       await Followers.findOneAndUpdate(
@@ -2120,7 +2120,7 @@ async function removeFollower({ userName, userNameToUnfollow }, callback) {
         },
         {
           $pull: {
-            followers: userNameToUnfollow,
+            followers: userNameToRemove,
           },
         }
       ).then((result) => {
@@ -2139,7 +2139,7 @@ async function unfollowUser({ userName, userNameToUnfollow }, callback) {
     return callback({ message: "invalid input - userName field is empty" });
   }
   if (!userNameToUnfollow) {
-    return callback({ message: "invalid input - userName field is empty" });
+    return callback({ message: "invalid input - userNameToUnfollow field is empty" });
   }
 
   const user1 = await Users.findOne({ userName: userName });
