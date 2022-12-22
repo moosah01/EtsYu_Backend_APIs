@@ -690,3 +690,51 @@ exports.unfollowUser = (req,res,next) =>
         })
     })
 }
+
+exports.getAllUsers = (req,res,next) =>
+{
+    userService.getAllUsers((req.body), (error,result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "The list of all exsisting users is as follows",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.getUsersLength = (req,res,next) =>
+{
+    userService.getUsersLength((req.body), (error, result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "This is how many users EtsYu has",
+            data: {
+                message: result
+            }
+        })
+    })
+}
+
+exports.searchUsers = (req,res,next) =>
+{
+    userService.searchUsers((req.body), (error, result) => {
+        if(error)
+        {
+            return next(error,result)
+        }
+        return res.status(200).send({
+            Status: "Users meeting your criteria",
+            data: {
+                message: result
+            }
+        })
+    })
+}

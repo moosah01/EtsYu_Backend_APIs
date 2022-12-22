@@ -34,6 +34,8 @@ router.post("/voteLose", userController.voteLose);
 router.post("/toggleUserStatus", userController.toggleUserStatus);
 router.post("/removeFollower", userController.removeFollower);
 router.post("/unfollowUser", userController.unfollowUser);
+router.post("/searchUsers", userController.searchUsers);
+
 
 
 
@@ -58,6 +60,10 @@ router.post("/getFriendStatus", userController.getFriendStatus);
 
 
 router.get("/getAllChallenges", userController.getAllChallenges)
+router.get("/getAllUsers", userController.getAllUsers)
+router.get("/getUsersLength", userController.getUsersLength)
+
+
 
 
 

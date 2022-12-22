@@ -519,6 +519,7 @@ async function uploadPost(
         userName: userName,
         "challengesAccepted.challengeID": challengeID,
         "challengesAccepted.status": "pending",
+        "challengesAccepted.hasPosted": false,
       }).count()) > 0
     ) {
       //console.log("step 3");
@@ -574,6 +575,7 @@ async function uploadPost(
                     },
                   }
                 );
+
                 console.log("Post Added to myposts");
                 return callback(null, response);
               })
@@ -583,7 +585,22 @@ async function uploadPost(
                 });
               });
 
-            return callback(null, "post uploaded succesfully");
+            await MyChallenges.findOneAndUpdate(
+              {
+                userName: userName,
+                "challengesAccepted.challengeID": challengeID,
+                "challengesAccepted.status": "pending",
+                //"challengesAccepted.hasPosted": false,
+              },
+              {
+                $set: {
+                  "challengesAccepted.$.status": "uploaded",
+                  "challengesAccepted.$.hasPosted": true,
+                },
+              }
+            ).then((response) => {
+              return callback(null, "post uploaded succesfully");
+            });
           } else {
             return callback({
               message:
@@ -1545,8 +1562,6 @@ async function getOwnFollowRequests({ userName }, callback) {
   }
 }
 
-
-
 // async function getOtherProfileDetails({ userName, friendUserName }, callback) {
 //   if (!userName) {
 //     return callback({ message: "invalid input" });
@@ -1628,7 +1643,7 @@ async function getAllChallenges(params, callback) {
 
   const allChallenges = await Challenges.find();
 
-  console.log(allChallenges.length);
+  //console.log(allChallenges.length);
 
   var allChallengeIDs = [];
   var challengeImage;
@@ -1665,6 +1680,38 @@ async function getAllChallenges(params, callback) {
   //   .catch((error) => {
   //     return callback(error);
   //   });
+}
+
+async function getAllUsers(params, callback) {
+  var fNodeList = [];
+  var fullName;
+  var userProfilePicture;
+  var userName;
+  //var currUser;
+
+  const allUsers = await Users.find();
+
+  if (allUsers.length > 0) {
+    for (var i = 0; i < allUsers.length; i++) {
+      fullName = allUsers[i].fullName;
+      userProfilePicture = allUsers[i].userProfilePicture;
+      userName = allUsers[i].userName;
+
+      fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+    }
+
+    return callback(null, fNodeList);
+  } else {
+    return callback({
+      message: "No users have signed up for this application as of right now",
+    });
+  }
+}
+
+async function getUsersLength(params, callback) {
+  const allUsers = await Users.find();
+
+  return callback(null, allUsers.length);
 }
 
 async function getMyChallenges({ userName }, callback) {
@@ -2103,7 +2150,9 @@ async function removeFollower({ userName, userNameToRemove }, callback) {
     return callback({ message: "invalid input - userName field is empty" });
   }
   if (!userNameToRemove) {
-    return callback({ message: "invalid input - userNameToRemove field is empty" });
+    return callback({
+      message: "invalid input - userNameToRemove field is empty",
+    });
   }
 
   const user1 = await Users.findOne({ userName: userName });
@@ -2152,7 +2201,9 @@ async function unfollowUser({ userName, userNameToUnfollow }, callback) {
     return callback({ message: "invalid input - userName field is empty" });
   }
   if (!userNameToUnfollow) {
-    return callback({ message: "invalid input - userNameToUnfollow field is empty" });
+    return callback({
+      message: "invalid input - userNameToUnfollow field is empty",
+    });
   }
 
   const user1 = await Users.findOne({ userName: userName });
@@ -2196,6 +2247,57 @@ async function unfollowUser({ userName, userNameToUnfollow }, callback) {
   }
 }
 
+async function searchUsers({ query }, callback) {
+  if (!query) {
+    return callback({ message: "invalid input - query field is empty" });
+  }
+
+  var fNodeList = [];
+  var fullName;
+  var userProfilePicture;
+  var userName;
+
+  var searchedUsers = await Users.find({
+    $or: [
+      { userName: { $regex: "^" + query } },
+      { fullName: { $regex: "^" + query } },
+    ],
+  });
+
+  if (searchedUsers.length > 0) {
+   
+
+    for (var i = 0; i < searchedUsers.length; i++) {
+      fullName = searchedUsers[i].fullName;
+      userProfilePicture = searchedUsers[i].userProfilePicture;
+      userName = searchedUsers[i].userName;
+
+      fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+    }
+
+    return callback(null, fNodeList);
+  } else {
+
+   // console.log("i am here")
+    var searchedUsers2 = await Users.find({
+      $or: [{ userName: { $regex: query } }, { fullName: { $regex: query } }],
+    });
+
+    if (searchedUsers2.length > 0) {
+      for (var i = 0; i < searchedUsers2.length; i++) {
+        fullName = searchedUsers2[i].fullName;
+        userProfilePicture = searchedUsers2[i].userProfilePicture;
+        userName = searchedUsers2[i].userName;
+
+        fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+      }
+
+      return callback(null, fNodeList);
+    } else {
+      return callback(null, "Oopsie, looks like there's no one with that name");
+    }
+  }
+}
 
 module.exports = {
   login,
@@ -2236,5 +2338,8 @@ module.exports = {
   getFriendStatus,
   toggleUserStatus,
   removeFollower,
-  unfollowUser
+  unfollowUser,
+  getAllUsers,
+  getUsersLength,
+  searchUsers,
 };
