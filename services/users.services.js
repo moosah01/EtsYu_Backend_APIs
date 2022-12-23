@@ -1485,6 +1485,7 @@ async function getOwnPosts({ userName }, callback) {
       return callback(null, postNodeList);
     } else {
       return callback({ message: " this user has not made any posts" });
+      //return callback(null, "No posts uploaded yet")
     }
   } else {
     return callback({ message: "user does not exist" });
@@ -2414,6 +2415,8 @@ async function searchUsers({ query }, callback) {
 
       return callback(null, fNodeList);
     } else {
+      //return callback({message:"Oopsie, looks like there's no one with that name" });
+
       return callback(null, "Oopsie, looks like there's no one with that name");
     }
   }
