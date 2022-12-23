@@ -49,6 +49,18 @@ function myChallengeNode(challengeDetails, myChallenge, challengeImage) {
   (this.myChallenge = myChallenge), (this.challengeImage = challengeImage);
 }
 
+function postNode(
+  postDetails,
+  userProfilePicture,
+  challengeName,
+  challengeImage
+) {
+  this.postDetails = postDetails;
+  this.userProfilePicture = userProfilePicture;
+  this.challengeName = challengeName;
+  this.challengeImage = challengeImage;
+}
+
 function compare(a, b) {
   if (a > b) {
     return 1;
@@ -1426,16 +1438,51 @@ async function getOwnPosts({ userName }, callback) {
 
   const user = await Users.findOne({ userName: userName });
   if (user != null) {
+    var postNodeList = [];
+    var currPost;
+    var userProfilePicture;
+    var challengeName;
+    var challengeImage;
+    var tempChallenge;
+    var tempChallengeID;
+
+    var tempTrophie;
+    var tempTrophieID;
+
+    userProfilePicture = user.userProfilePicture;
+
     if (
       (await Posts.find({
         userName: userName,
       }).count()) > 0
     ) {
-      await Posts.find({ userName: userName })
-        .sort({ dateAdded: "desc" })
-        .then((result) => {
-          return callback(null, result);
-        });
+      const allPosts = await Posts.find({ userName: userName }).sort({
+        dateAdded: "desc",
+      });
+
+      for (var i = 0; i < allPosts.length; i++) {
+        currPost = allPosts[i];
+        tempChallengeID = allPosts[i].challengeID;
+        tempChallenge = await Challenges.findById({ _id: tempChallengeID });
+
+        tempTrophieID = tempChallenge.trophieID;
+        challengeName = tempChallenge.challengeName;
+
+        tempTrophie = await Trophies.findById({ _id: tempTrophieID });
+
+        challengeImage = tempTrophie.badgeUrl;
+
+        postNodeList.push(
+          new postNode(
+            currPost,
+            userProfilePicture,
+            challengeName,
+            challengeImage
+          )
+        );
+      }
+
+      return callback(null, postNodeList);
     } else {
       return callback({ message: " this user has not made any posts" });
     }
@@ -1908,11 +1955,49 @@ async function getFriendPosts({ userName, friendName }, callback) {
           userName: friendName,
         }).count()) > 0
       ) {
-        await Posts.find({ userName: friendName, isPrivated: false })
-          .sort({ dateAdded: "desc" })
-          .then((result) => {
-            return callback(null, result);
-          });
+        var postNodeList = [];
+        var currPost;
+        var userProfilePicture;
+        var challengeName;
+        var challengeImage;
+        var tempChallenge;
+        var tempChallengeID;
+
+        var tempTrophie;
+        var tempTrophieID;
+
+        userProfilePicture = user2.userProfilePicture;
+
+        const allPosts = await Posts.find({
+          userName: friendName,
+          isPrivated: false,
+        }).sort({
+          dateAdded: "desc",
+        });
+
+        for (var i = 0; i < allPosts.length; i++) {
+          currPost = allPosts[i];
+          tempChallengeID = allPosts[i].challengeID;
+          tempChallenge = await Challenges.findById({ _id: tempChallengeID });
+
+          tempTrophieID = tempChallenge.trophieID;
+          challengeName = tempChallenge.challengeName;
+
+          tempTrophie = await Trophies.findById({ _id: tempTrophieID });
+
+          challengeImage = tempTrophie.badgeUrl;
+
+          postNodeList.push(
+            new postNode(
+              currPost,
+              userProfilePicture,
+              challengeName,
+              challengeImage
+            )
+          );
+        }
+
+        return callback(null, postNodeList);
       } else {
         return callback({ message: " this user has not made any posts" });
       }
@@ -2067,9 +2152,22 @@ async function getUserFeed({ userName }, callback) {
   const user = await Users.findOne({ userName: userName });
 
   if (user != null) {
-    var postList = [];
+    //var postList = [];
     var usersList = [];
-    var singlePost;
+    //var singlePost;
+
+    var postNodeList = [];
+    var currPost;
+    var userProfilePicture;
+    var challengeName;
+    var challengeImage;
+    var tempChallenge;
+    var tempChallengeID;
+
+    var allPosts;
+
+    var tempTrophie;
+    var tempTrophieID;
 
     const myFollowing = await Following.findOne({ userName: userName });
 
@@ -2079,30 +2177,52 @@ async function getUserFeed({ userName }, callback) {
     usersList.push(userName);
 
     for (var i = 0; i < usersList.length; i++) {
-      var posts = await Posts.find({
+      allPosts = await Posts.find({
         userName: usersList[i],
         isPrivated: false,
       }).sort({ dateAdded: "desc" });
 
-      for (var j = 0; j < posts.length; j++) {
-        singlePost = posts[j];
-        postList.push(singlePost);
+      for (var j = 0; j < allPosts.length; j++) {
+        currPost = allPosts[j];
+
+        tempChallengeID = allPosts[j].challengeID;
+        tempChallenge = await Challenges.findById({ _id: tempChallengeID });
+
+        tempTrophieID = tempChallenge.trophieID;
+        challengeName = tempChallenge.challengeName;
+
+        tempTrophie = await Trophies.findById({ _id: tempTrophieID });
+
+        challengeImage = tempTrophie.badgeUrl;
+
+        var testUser = await Users.findOne({ userName: allPosts[j].userName });
+
+        userProfilePicture = testUser.userProfilePicture;
+
+        postNodeList.push(
+          new postNode(
+            currPost,
+            userProfilePicture,
+            challengeName,
+            challengeImage
+          )
+        );
       }
     }
 
-    var orderedPostList;
+    // var orderedPostList;
 
-    orderedPostList = postList.sort((a, b) => {
-      if (a.dateAdded.getTime() > b.dateAdded.getTime()) {
-        return 1;
-      } else if (a.dateAdded.getTime() < b.dateAdded.getTime()) {
-        return -1;
-      } else {
-        return 0;
-      }
-    });
+    // orderedPostList = postNodeList.sort((a, b) => {
+    //   if (a.dateAdded.getTime() > b.dateAdded.getTime()) {
+    //     return 1;
+    //   } else if (a.dateAdded.getTime() < b.dateAdded.getTime()) {
+    //     return -1;
+    //   } else {
+    //     return 0;
+    //   }
+    // });
 
-    return callback(null, orderedPostList);
+    return callback(null, postNodeList);
   } else {
     return callback({ message: "user does not exist" });
   }
@@ -2259,14 +2379,12 @@ async function searchUsers({ query }, callback) {
 
   var searchedUsers = await Users.find({
     $or: [
-      { userName: { $regex: "^" + query } },
-      { fullName: { $regex: "^" + query } },
+      { userName: { $regex: "^" + "(?i)" + query } },
+      { fullName: { $regex: "^" + "(?i)" + query } },
     ],
   });
 
   if (searchedUsers.length > 0) {
-   
-
     for (var i = 0; i < searchedUsers.length; i++) {
       fullName = searchedUsers[i].fullName;
       userProfilePicture = searchedUsers[i].userProfilePicture;
@@ -2277,9 +2395,60 @@ async function searchUsers({ query }, callback) {
 
     return callback(null, fNodeList);
   } else {
-
-   // console.log("i am here")
+    // console.log("i am here")
     var searchedUsers2 = await Users.find({
+      $or: [
+        { userName: { $regex: "(?i)" + query } },
+        { fullName: { $regex: "(?i)" + query } },
+      ],
+    });
+
+    if (searchedUsers2.length > 0) {
+      for (var i = 0; i < searchedUsers2.length; i++) {
+        fullName = searchedUsers2[i].fullName;
+        userProfilePicture = searchedUsers2[i].userProfilePicture;
+        userName = searchedUsers2[i].userName;
+
+        fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+      }
+
+      return callback(null, fNodeList);
+    } else {
+      return callback(null, "Oopsie, looks like there's no one with that name");
+    }
+  }
+}
+
+async function searchChallenges({ query }, callback) {
+  if (!query) {
+    return callback({ message: "invalid input - query field is empty" });
+  }
+
+  var fNodeList = [];
+  var fullName;
+  var userProfilePicture;
+  var userName;
+
+  var searchedUsers = await Challenges.find({
+    $or: [
+      { userName: { $regex: "^" + query } },
+      { fullName: { $regex: "^" + query } },
+    ],
+  });
+
+  if (searchedUsers.length > 0) {
+    for (var i = 0; i < searchedUsers.length; i++) {
+      fullName = searchedUsers[i].fullName;
+      userProfilePicture = searchedUsers[i].userProfilePicture;
+      userName = searchedUsers[i].userName;
+
+      fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+    }
+
+    return callback(null, fNodeList);
+  } else {
+    // console.log("i am here")
+    var searchedUsers2 = await Challenges.find({
       $or: [{ userName: { $regex: query } }, { fullName: { $regex: query } }],
     });
 
