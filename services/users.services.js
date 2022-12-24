@@ -1793,6 +1793,11 @@ async function getAllUsers(params, callback) {
 }
 
 async function getUsersLength(params, callback) {
+
+  if(!params.userName) {
+    return callback({})
+  }
+
   const allUsers = await Users.find();
 
   return callback(null, allUsers.length);
@@ -2451,9 +2456,9 @@ async function searchUsers({ query }, callback) {
 
       return callback(null, fNodeList);
     } else {
-      //return callback({message:"Oopsie, looks like there's no one with that name" });
+      return callback({message:"Oopsie, looks like there's no one with that name" });
 
-      return callback(null, "Oopsie, looks like there's no one with that name");
+      //return callback(null, "Oopsie, looks like there's no one with that name");
     }
   }
 }
