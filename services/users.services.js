@@ -1092,58 +1092,71 @@ async function addChallenge(params, callback) {
       message: "every challenge needs a win percentage votes to be accepted",
     });
   }
+
+  const user = await Users.findOne({ userName: params.userName });
+
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      if (
+        params.difficulty === "easy" ||
+        params.difficulty === "medium" ||
+        params.difficulty === "no pain no gain"
+      ) {
+        const newTrophie = new Trophies({
+          badgeUrl: params.badgeUrl,
+        });
+
+        const newChallenge = new Challenges({
+          challengeDesc: params.challengeDesc,
+          challengeName: params.challengeName,
+          creatorID: params.userName,
+          trophieID: newTrophie._id,
+          difficulty: params.difficulty,
+          acceptanceCriteria: {
+            properties: {
+              minVotes: params.acceptanceCriteria.minVotes,
+              winPercent: params.acceptanceCriteria.winPercent,
+              timeLimit: "3 days",
+            },
+          },
+        });
+
+        newChallenge
+          .save()
+          .then((responseChallenge) => {
+            newTrophie
+              .save()
+              .then((responseTrophie) => {
+                console.log("Trophie Saved");
+                return callback(null, responseChallenge);
+              })
+              .catch((error) => {
+                console.log("i am here");
+                return callback(error);
+              });
+          })
+          .catch((error) => {
+            console.log("i am here 2");
+            return callback(error);
+          });
+      } else {
+        return callback({ message: "invalid challenge difficulty" });
+      }
+    } else {
+      return callback({ message: "you are not authorised to do this" });
+    }
+  } else {
+    return callback({ message: "user does not exist" });
+  }
   // if (!params.acceptanceCriteria.timeLimit) {
   //   return callback({ message: "every challenge needs a time limit" });
   // }
-
-  if (
-    params.difficulty === "easy" ||
-    params.difficulty === "medium" ||
-    params.difficulty === "no pain no gain"
-  ) {
-    const newTrophie = new Trophies({
-      badgeUrl: params.badgeUrl,
-    });
-
-    const newChallenge = new Challenges({
-      challengeDesc: params.challengeDesc,
-      challengeName: params.challengeName,
-      creatorID: params.userName,
-      trophieID: newTrophie._id,
-      difficulty: params.difficulty,
-      acceptanceCriteria: {
-        properties: {
-          minVotes: params.acceptanceCriteria.minVotes,
-          winPercent: params.acceptanceCriteria.winPercent,
-          timeLimit: "3 days",
-        },
-      },
-    });
-
-    newChallenge
-      .save()
-      .then((responseChallenge) => {
-        newTrophie
-          .save()
-          .then((responseTrophie) => {
-            console.log("Trophie Saved");
-            return callback(null, responseChallenge);
-          })
-          .catch((error) => {
-            console.log("i am here");
-            return callback(error);
-          });
-      })
-      .catch((error) => {
-        console.log("i am here 2");
-        return callback(error);
-      });
-  } else {
-    return callback({ message: "invalid challenge difficulty" });
-  }
 }
 
-async function toggleChallengeStatus({ challengeID, newStatus }, callback) {
+async function toggleChallengeStatus(
+  { challengeID, newStatus, userName },
+  callback
+) {
   if (!challengeID) {
     return callback({ message: "challenge ID not entered" });
   }
@@ -1151,30 +1164,46 @@ async function toggleChallengeStatus({ challengeID, newStatus }, callback) {
     return callback({ message: "new Status not specified" });
   }
 
-  if (
-    newStatus === "inactive" ||
-    newStatus === "active" ||
-    newStatus === "deleted"
-  ) {
-    if (
-      (await Challenges.find({
-        _id: challengeID,
-      }).count()) > 0
-    ) {
-      await Challenges.findByIdAndUpdate(
-        {
-          _id: challengeID,
-        },
-        {
-          status: newStatus,
+  if (!userName) {
+    return callback({ message: "invalid input - userName not given" });
+  }
+
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      if (
+        newStatus === "inactive" ||
+        newStatus === "active" ||
+        newStatus === "deleted"
+      ) {
+        if (
+          (await Challenges.find({
+            _id: challengeID,
+          }).count()) > 0
+        ) {
+          await Challenges.findByIdAndUpdate(
+            {
+              _id: challengeID,
+            },
+            {
+              status: newStatus,
+            }
+          );
+          return callback({ message: "challenge status is now changed" });
+        } else {
+          return callback({
+            message: "challenge with entered ID does not exist",
+          });
         }
-      );
-      return callback({ message: "challenge status is now changed" });
+      } else {
+        return callback({ message: "invalid status given" });
+      }
     } else {
-      return callback({ message: "challenge with entered ID does not exist" });
+      return callback({ message: "you are not authorised to do this" });
     }
   } else {
-    return callback({ message: "invalid status given" });
+    return callback({ message: "user does not exist" });
   }
 }
 
@@ -1720,14 +1749,6 @@ async function getAllChallenges(params, callback) {
   }
 
   return callback(null, challengeNodeList);
-
-  // await Challenges.find()
-  //   .then((result) => {
-  //     return callback(null, result);
-  //   })
-  //   .catch((error) => {
-  //     return callback(error);
-  //   });
 }
 
 async function getAllUsers(params, callback) {
@@ -1737,22 +1758,37 @@ async function getAllUsers(params, callback) {
   var userName;
   //var currUser;
 
-  const allUsers = await Users.find();
+  if (!params.userName) {
+    return callback({ message: "invalid input - userName not specified" });
+  }
 
-  if (allUsers.length > 0) {
-    for (var i = 0; i < allUsers.length; i++) {
-      fullName = allUsers[i].fullName;
-      userProfilePicture = allUsers[i].userProfilePicture;
-      userName = allUsers[i].userName;
+  const user = await Users.findOne({ userName: params.userName });
 
-      fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      const allUsers = await Users.find();
+
+      if (allUsers.length > 0) {
+        for (var i = 0; i < allUsers.length; i++) {
+          fullName = allUsers[i].fullName;
+          userProfilePicture = allUsers[i].userProfilePicture;
+          userName = allUsers[i].userName;
+
+          fNodeList.push(new fNode(userName, fullName, userProfilePicture));
+        }
+
+        return callback(null, fNodeList);
+      } else {
+        return callback({
+          message:
+            "No users have signed up for this application as of right now",
+        });
+      }
+    } else {
+      return callback({ message: "Unauthorised access" });
     }
-
-    return callback(null, fNodeList);
   } else {
-    return callback({
-      message: "No users have signed up for this application as of right now",
-    });
+    return callback({ message: "user does not exist" });
   }
 }
 

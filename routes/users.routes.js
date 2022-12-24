@@ -60,7 +60,7 @@ router.post("/getFriendStatus", userController.getFriendStatus);
 
 
 router.get("/getAllChallenges", userController.getAllChallenges)
-router.get("/getAllUsers", userController.getAllUsers)
+router.post("/getAllUsers", userController.getAllUsers)
 router.get("/getUsersLength", userController.getUsersLength)
 
 
