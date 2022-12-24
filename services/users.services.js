@@ -49,6 +49,8 @@ function myChallengeNode(challengeDetails, myChallenge, challengeImage) {
   (this.myChallenge = myChallenge), (this.challengeImage = challengeImage);
 }
 
+
+
 function postNode(
   postDetails,
   userProfilePicture,
@@ -59,6 +61,18 @@ function postNode(
   this.userProfilePicture = userProfilePicture;
   this.challengeName = challengeName;
   this.challengeImage = challengeImage;
+}
+
+const shuffle = (array) => {
+  for (let i = array.length-1; i>0 ; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    const temp = array[i];
+
+    //swap
+    array[i] = array[j];
+    array[j] = temp;
+  }
+  return array;
 }
 
 function compare(a, b) {
@@ -2309,7 +2323,11 @@ async function getUserFeed({ userName }, callback) {
     //   }
     // });
 
-    return callback(null, postNodeList);
+    var returnPostNodeList = [];
+
+    returnPostNodeList = shuffle(postNodeList);
+
+    return callback(null, returnPostNodeList);
   } else {
     return callback({ message: "user does not exist" });
   }
