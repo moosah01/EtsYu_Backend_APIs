@@ -1190,7 +1190,7 @@ async function toggleChallengeStatus(
               status: newStatus,
             }
           );
-          return callback({ message: "challenge status is now changed" });
+          return callback(null,({ message: "challenge status is now changed" }));
         } else {
           return callback({
             message: "challenge with entered ID does not exist",
