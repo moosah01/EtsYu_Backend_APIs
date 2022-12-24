@@ -1903,6 +1903,7 @@ async function getUniqueChallenges({ userName }, callback) {
 
       var challID = await Challenges.findById({ _id: thisChallengeID });
 
+      
       myChallengeIDs.push(challID._id);
       //  console.log(myChallengeIDs[i]);
     }
@@ -1937,8 +1938,9 @@ async function getUniqueChallenges({ userName }, callback) {
           //var searchTrophieID = mongoose.Types.ObjectID(challenge.trophieID)
           // console.log(challenge.trophieID);
           //var searchTrophieID = ObjectID(challenge.trophieID)
-
-          var trophie = await Trophies.findById({ _id: challenge.trophieID });
+          
+          if (challenge.status === 'active') {
+            var trophie = await Trophies.findById({ _id: challenge.trophieID });
           if (trophie != null) {
             challengeImage = trophie.badgeUrl;
             console.log(challengeImage);
@@ -1947,6 +1949,8 @@ async function getUniqueChallenges({ userName }, callback) {
               new challengeNode(challenge, challengeImage)
             );
           }
+          }
+          
         }
       }
     }
