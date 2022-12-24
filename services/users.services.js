@@ -1725,30 +1725,45 @@ async function getAllChallenges(params, callback) {
   var allChallengeIDs = [];
   var challengeImage;
 
-  for (var i = 0; i < allChallenges.length; i++) {
-    var thisChallengeID = allChallenges[i]._id;
-    allChallengeIDs.push(thisChallengeID);
+  if (!params.userName) {
+    return callback({ message: "invalid input" });
   }
 
-  for (var i = 0; i < allChallenges.length; i++) {
-    var challenge = await Challenges.findById({ _id: allChallengeIDs[i] });
-    if (!challenge) {
-      //console.log("Nahi Mila ");
-    } else {
-      /// console.log("Mil Gaya ");
-      var trophie = await Trophies.findById({ _id: challenge.trophieID });
-      if (!trophie) {
-        //  console.log("Nahi Mila ");
-      } else {
-        challengeImage = trophie.badgeUrl;
-        console.log(challengeImage);
+  const user = await Users.findOne({ userName: params.userName });
 
-        challengeNodeList.push(new challengeNode(challenge, challengeImage));
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      for (var i = 0; i < allChallenges.length; i++) {
+        var thisChallengeID = allChallenges[i]._id;
+        allChallengeIDs.push(thisChallengeID);
       }
-    }
-  }
+      for (var i = 0; i < allChallenges.length; i++) {
+        var challenge = await Challenges.findById({ _id: allChallengeIDs[i] });
+        if (!challenge) {
+          //console.log("Nahi Mila ");
+        } else {
+          /// console.log("Mil Gaya ");
+          var trophie = await Trophies.findById({ _id: challenge.trophieID });
+          if (!trophie) {
+            //  console.log("Nahi Mila ");
+          } else {
+            challengeImage = trophie.badgeUrl;
+            console.log(challengeImage);
 
-  return callback(null, challengeNodeList);
+            challengeNodeList.push(
+              new challengeNode(challenge, challengeImage)
+            );
+          }
+        }
+      }
+
+      return callback(null, challengeNodeList);
+    } else {
+      return callback({ message: "unauthorised access" });
+    }
+  } else {
+    return callback({ message: "user does not exist" });
+  }
 }
 
 async function getAllUsers(params, callback) {
@@ -1793,14 +1808,23 @@ async function getAllUsers(params, callback) {
 }
 
 async function getUsersLength(params, callback) {
-
-  if(!params.userName) {
-    return callback({})
+  if (!params.userName) {
+    return callback({ message: "invalid input - no userName specified" });
   }
 
-  const allUsers = await Users.find();
+  const user = await Users.findOne({ userName: params.userName });
 
-  return callback(null, allUsers.length);
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      const allUsers = await Users.find();
+
+      return callback(null, allUsers.length);
+    } else {
+      return callback({ message: "unauthorised accesss" });
+    }
+  } else {
+    return callback({ message: "User does not exist" });
+  }
 }
 
 async function getMyChallenges({ userName }, callback) {
@@ -2082,13 +2106,20 @@ async function getTrophie({ trophieID }, callback) {
   }
 }
 
-async function changeTrophieBadge({ trophieID, newBadgeURL }, callback) {
+async function changeTrophieBadge(
+  { trophieID, newBadgeURL, userName },
+  callback
+) {
   if (!newBadgeURL) {
     return callback({ message: "invalid input => url missing" });
   }
 
   if (!trophieID) {
     return callback({ message: "invalid input => no trophie ID specified" });
+  }
+
+  if (!userName) {
+    return callback({ message: "invalid input => username not specified" });
   }
 
   if (trophieID.length != 24) {
@@ -2099,31 +2130,41 @@ async function changeTrophieBadge({ trophieID, newBadgeURL }, callback) {
 
   const trophie = await Trophies.findById({ _id: trophieID });
 
-  if (trophie != null) {
-    if (
-      (await Trophies.find({
-        _id: trophieID,
-      }).count()) > 0
-    ) {
-      await Trophies.findByIdAndUpdate(
-        {
-          _id: trophieID,
-        },
-        {
-          badgeUrl: newBadgeURL,
+  const user = await Users.findOne({ userName: userName });
+
+  if (user != null) {
+    if (user.userType === "ADMIN") {
+      if (trophie != null) {
+        if (
+          (await Trophies.find({
+            _id: trophieID,
+          }).count()) > 0
+        ) {
+          await Trophies.findByIdAndUpdate(
+            {
+              _id: trophieID,
+            },
+            {
+              badgeUrl: newBadgeURL,
+            }
+          )
+            .then((result) => {
+              return callback(null, result);
+            })
+            .catch((error) => {
+              return callback(error);
+            });
+        } else {
+          return callback({ message: "trophie does not exist" });
         }
-      )
-        .then((result) => {
-          return callback(null, result);
-        })
-        .catch((error) => {
-          return callback(error);
-        });
+      } else {
+        return callback({ message: "trophie does not exist" });
+      }
     } else {
-      return callback({ message: "trophie does not exist" });
+      return callback({ message: "unauthorised access" });
     }
   } else {
-    return callback({ message: "trophie does not exist" });
+    return callback({ message: "user does not exist" });
   }
 }
 
@@ -2270,7 +2311,7 @@ async function getUserFeed({ userName }, callback) {
   }
 }
 
-async function toggleUserStatus({ userName, newStatus }, callback) {
+async function toggleUserStatus({ userName, newStatus, adminName }, callback) {
   if (!userName) {
     return callback({ message: "invalid input - userName field is empty" });
   }
@@ -2278,32 +2319,46 @@ async function toggleUserStatus({ userName, newStatus }, callback) {
     return callback({ message: "invalid input - status field not entered" });
   }
 
-  if (
-    newStatus === "inactive" ||
-    newStatus === "active" ||
-    newStatus === "deleted"
-  ) {
-    const user = await Users.findOne({ userName: userName });
-    if (user != null) {
-      await Users.findOneAndUpdate(
-        {
-          userName: userName,
-        },
-        {
-          status: newStatus,
+  if (!adminName) {
+    return callback({ message: "invalid input - adminName not specified" });
+  }
+
+  const admin = await Users.findOne({ userName: adminName });
+
+  if (admin != null) {
+    if (admin.userType === "ADMIN") {
+      if (
+        newStatus === "inactive" ||
+        newStatus === "active" ||
+        newStatus === "deleted"
+      ) {
+        const user = await Users.findOne({ userName: userName });
+        if (user != null) {
+          await Users.findOneAndUpdate(
+            {
+              userName: userName,
+            },
+            {
+              status: newStatus,
+            }
+          )
+            .then((success) => {
+              return callback(null, success);
+            })
+            .catch((error) => {
+              return error;
+            });
+        } else {
+          return callback({ message: "user does not exist" });
         }
-      )
-        .then((success) => {
-          return callback(null, success);
-        })
-        .catch((error) => {
-          return error;
-        });
+      } else {
+        return callback({ message: "invalid status specified" });
+      }
     } else {
-      return callback({ message: "user does not exist" });
+      return callback({ message: "unauthorised access" });
     }
   } else {
-    return callback({ message: "invalid status specified" });
+    return callback({ message: "user does not exist" });
   }
 }
 
@@ -2456,7 +2511,9 @@ async function searchUsers({ query }, callback) {
 
       return callback(null, fNodeList);
     } else {
-      return callback({message:"Oopsie, looks like there's no one with that name" });
+      return callback({
+        message: "Oopsie, looks like there's no one with that name",
+      });
 
       //return callback(null, "Oopsie, looks like there's no one with that name");
     }
